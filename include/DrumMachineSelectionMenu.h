@@ -15,18 +15,20 @@ const byte SELECTED_ICON = byte(33);
 const int MAX_BPM = 220;
 const int MIN_BPM = 30;
 
-class InstrumentSelectionMenu {
+class DrumMachineSelectionMenu {
 public:
     enum Page { CATEGORY_SELECTION, INSTRUMENT_SELECTION, BPM_SELECTION };
 
     Page currPage;
     int selectedInstrumentCategoryId;
     int selectedInstrumentId;
+    int currBPM;
 
-    InstrumentSelectionMenu(LiquidCrystal_I2C lcd, const int lcdNumRows, const int lcdNumCols)
+    DrumMachineSelectionMenu(LiquidCrystal_I2C lcd, const int lcdNumRows, const int lcdNumCols)
         : currPage(CATEGORY_SELECTION),
           selectedInstrumentCategoryId(0),
           selectedInstrumentId(-1),
+          currBPM(120),
           lcd(lcd),
           lcdNumRows(lcdNumRows),
           lcdNumCols(lcdNumCols),
@@ -34,8 +36,7 @@ public:
           maxRelativeSelectionIdx(NUM_CATEGORIES - 1),
           prevPageRelativeSelectionIdx(0),
           currGroupNum(0),
-          activeInstrumentCategoryId(-1),
-          currBPM(120) {}
+          activeInstrumentCategoryId(-1) {}
 
     void init() {
         lcd.init();
@@ -43,6 +44,14 @@ public:
 
         renderCategoryList(currGroupNum);
         renderSelectionIndicator(relativeSelectionIdx);
+    }
+
+    int getSelectedInstrumentID() {
+        return selectedInstrumentId;
+    }
+
+    int getCurrBPM() {
+        return currBPM;
     }
 
     void selectInstrument() {
@@ -128,15 +137,18 @@ public:
 
         int newGroupNum = relativeSelectionIdx / lcdNumRows;
         if (newGroupNum != currGroupNum) {
-            currGroupNum = newGroupNum;
-            lcd.clear();
-
             switch (currPage) {
                 case INSTRUMENT_SELECTION:
+                    currGroupNum = newGroupNum;
+                    lcd.clear();
                     renderInstrumentList(activeInstrumentCategoryId, currGroupNum);
                     break;
                 case CATEGORY_SELECTION:
+                    currGroupNum = newGroupNum;
+                    lcd.clear();
                     renderCategoryList(currGroupNum);
+                    break;
+                case BPM_SELECTION:
                     break;
             }
         }
@@ -160,9 +172,6 @@ private:
     int currGroupNum;
 
     int activeInstrumentCategoryId;
-
-    // The current selected bpm
-    int currBPM;
 
     void renderCategoryList(int currGroupNum) {
         if (NUM_CATEGORIES == 0) {
