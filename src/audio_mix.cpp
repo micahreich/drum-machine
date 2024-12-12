@@ -32,29 +32,6 @@ void signalHandler(int signum) {
     running = false;  // Set the flag to false to signal the thread to stop
 }
 
-std::vector<sf::Int16> createMixBuffer(
-    const std::vector<sf::Int16>& sample_kick,
-    const std::vector<sf::Int16>& sample_snare,
-    LoopingStatistics& stats
-) {
-    int totalFrames = stats.bar_length_frames; // Example total frame count
-    std::vector<sf::Int16> mix(totalFrames * AUDIO_CHANNELS, 0); // Stereo mix
-
-    for (int i = 0; i < N_TRACK_SUBDIVISIONS; i++) {
-        int frameStartIdx = i * stats.n_frames_subdivision;
-
-        if (i == 0 || i == 4 || i == 8 || i == 12) {
-            mixSample(mix, sample_kick, frameStartIdx); // Play kick on every beat
-        }
-
-        if (i == 12) {
-            mixSample(mix, sample_snare, frameStartIdx); // Play kick on every beat
-        }
-    }
-
-    return mix;
-}
-
 class DrumSequenceDataConsumer {
 public:
     DrumSequenceDataConsumer() {
@@ -76,6 +53,7 @@ public:
     boost::lockfree::spsc_queue<Action, boost::lockfree::capacity<10>> action_queue;
 private:
     std::thread consumer_thread;
+    bool paused = false;
 
     // Drum sequence data, built incrementally
     SequenceData sequence_data;
@@ -87,7 +65,7 @@ private:
     AudioStreamBuffer individual_tracks[N_TRACKS];
 
     // Looping statistics for the current sequence
-    LoopingStatistics looping_stats = LoopingStatistics::fromBPM(120);
+    LoopingStatistics looping_stats = LoopingStatistics::fromBPM(sequence_data.bpm);
 
     // Instance of the sound stream which loops the current mix
     SwitchingSoundStream sound_stream = SwitchingSoundStream(AUDIO_SAMPLE_RATE, AUDIO_CHANNELS);
@@ -108,7 +86,7 @@ private:
                         track.triggers[beat_idx] = !track.triggers[beat_idx];
                         track.n_active_triggers += track.triggers[beat_idx] ? 1 : -1;
 
-                        sequence_data.prettyPrint();
+                        // sequence_data.prettyPrint();
 
                         if (track.triggers[beat_idx]) {
                             // Case 1: beat was toggled on, so mix in a new sample
@@ -137,6 +115,86 @@ private:
                         break;
                     }
 
+                    case Action::Type::TRACK_MUTE_TOGGLE: {
+                        track_id_t track_id = action.data.mute_unmute_track_id;
+                        TrackData &track = sequence_data.tracks[track_id];
+                        track.muted = !track.muted;
+
+                        // Update the sound stream with the new mix
+                        AudioStreamBuffer mix_buffer = mixTracksTogether(individual_tracks, sequence_data, looping_stats);
+                        sound_stream.populateIntermetideBuffer(mix_buffer, looping_stats);
+
+                        break;
+                    }
+
+                    case Action::Type::PAUSE_TOGGLE: {
+                        paused = !paused;
+
+                        if (paused) {
+                            sound_stream.pause();
+                        } else {
+                            sound_stream.play();
+                        }
+
+                        break;
+                    }
+
+                    case Action::Type::INSTRUMENT_SAMPLE: {
+                        sampleInstrument(action.data.sample_instrument_id);
+
+                        break;
+                    }
+
+                    case Action::Type::BPM_SELECT: {
+                        bpm_t new_bpm = action.data.new_bpm;
+                        sequence_data.bpm = new_bpm;
+                        looping_stats = LoopingStatistics::fromBPM(new_bpm);
+
+                        // Update the individual tracks
+                        for (int j = 0; j < N_TRACKS; ++j) {
+                            individual_tracks[j] = std::move(populateFromTrackData(sequence_data.tracks[j], looping_stats));
+                        }
+
+                        // Update the sound stream with the new mix
+                        AudioStreamBuffer mix_buffer = mixTracksTogether(individual_tracks, sequence_data, looping_stats);
+                        sound_stream.populateIntermetideBuffer(mix_buffer, looping_stats);
+
+                        break;
+                    }
+
+                    case Action::Type::CHANGE_TRACK_INSTRUMENT_ID: {
+                        track_id_t track_id = action.data.change_instrument_track_id;
+                        instrument_id_t new_instrument_id = action.data.new_instrument_id;
+
+                        TrackData &track = sequence_data.tracks[track_id];
+                        track.instrument_id = new_instrument_id;
+
+                        // Update the individual track
+                        individual_tracks[track_id] = std::move(populateFromTrackData(track, looping_stats));
+
+                        // Update the sound stream with the new mix
+                        AudioStreamBuffer mix_buffer = mixTracksTogether(individual_tracks, sequence_data, looping_stats);
+                        sound_stream.populateIntermetideBuffer(mix_buffer, looping_stats);
+
+                        break;
+                    }
+
+                    case Action::Type::CLEAR_ALL: {
+                        // Clear all triggers
+                        sequence_data.reset();
+                        looping_stats = LoopingStatistics::fromBPM(sequence_data.bpm);
+
+                        for (int i = 0; i < N_TRACKS; ++i) {
+                            individual_tracks[i].clear();
+                        }
+
+                        // Update the sound stream with the new mix
+                        AudioStreamBuffer mix_buffer = mixTracksTogether(individual_tracks, sequence_data, looping_stats);
+                        sound_stream.populateIntermetideBuffer(mix_buffer, looping_stats);
+
+                        break;
+                    }
+
                     default:
                         break;
                 }
@@ -144,7 +202,31 @@ private:
         }
     }
 
-    void sampleInstrument(AudioStreamBuffer &buffer) {
+    void sampleInstrument(instrument_id_t instrument_id) {
+        // Load in the audio sample if we haven't already
+        auto instrument_audio = instrument_samples.find(instrument_id);
+        if (instrument_audio == instrument_samples.end()) {
+            // If the instrument isnt yet loaded, load it into the hashmap
+            const char *file_name = ABSOLUTE_PATHS[instrument_id];
+
+            instrument_samples[instrument_id] = AudioStreamBuffer();
+            int sample_rate, channels;
+
+            loadWavFile(file_name, instrument_samples[instrument_id], sample_rate, channels);
+            instrument_audio = instrument_samples.find(instrument_id);
+        }
+
+        const AudioStreamBuffer& sample = instrument_audio->second;
+
+        if (sample.empty()) {
+            std::cerr << "Error: samples failed to load.\n";
+            return;
+        }
+
+        sampleInstrument(sample);
+    }
+
+    void sampleInstrument(const AudioStreamBuffer &buffer) {
         sf::SoundBuffer sound_buffer;
         if (!sound_buffer.loadFromSamples(buffer.data(), buffer.size(), AUDIO_CHANNELS, AUDIO_SAMPLE_RATE)) {
             std::cerr << "Failed to load audio buffer from samples!" << std::endl;
@@ -244,6 +326,24 @@ private:
         }
 
         addSampleToTrackByIndex(track, sample, beat_idx, stats, volume);
+    }
+
+    AudioStreamBuffer populateFromTrackData(const TrackData &data, const LoopingStatistics &looping_stats) {
+        AudioStreamBuffer track = {};
+
+        for (int i = 0; i < N_TRACK_SUBDIVISIONS; ++i) {
+            if (data.triggers[i]) {
+                addSampleToTrackByIndex(
+                    track,
+                    data.instrument_id,
+                    i,
+                    looping_stats,
+                    data.volume
+                );
+            }
+        }
+
+        return track;
     }
 
     AudioStreamBuffer mixTracksTogether(

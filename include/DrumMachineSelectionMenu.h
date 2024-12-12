@@ -119,7 +119,7 @@ public:
         if (tickDelta == 0) return;
 
         if (currPage == BPM_SELECTION) {
-            currBPM += tickDelta;
+            currBPM += 10 * tickDelta;
             currBPM = max(MIN_BPM, min(currBPM, MAX_BPM));
             renderBPMSelection(true);
             

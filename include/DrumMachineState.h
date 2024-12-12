@@ -13,6 +13,7 @@ struct Action {
         INSTRUMENT_SAMPLE = 5,
         BPM_SELECT = 6,
         CHANGE_TRACK_INSTRUMENT_ID = 7,
+        CLEAR_ALL = 8,
     };
     Type type;
 
@@ -88,6 +89,13 @@ struct Action {
         return action;
     }
 
+    static Action create_ClearAll() {
+        Action action;
+        action.type = CLEAR_ALL;
+
+        return action;
+    }
+
     static Action fromSerialized(MessageType &msg_type, const unsigned char *buffer) {
         switch (msg_type) {
             case MSG_TYPE_SEQUENCE_DATA: {
@@ -126,6 +134,10 @@ struct Action {
                 return create_ChangeTrackInstrumentID(track_id, instrument_id);
             }
 
+            case MSG_TYPE_CLEAR_ALL: {
+                return create_ClearAll();
+            }
+
             default:
                 return Action{ .type = NOOP };
         }
@@ -142,6 +154,7 @@ struct Action {
 
 class DrumMachineState {
 public:
+    SequenceData sequence_data;
     track_id_t curr_track_id;
     bool paused;
 
@@ -194,6 +207,10 @@ public:
                 break;
             }
 
+            case Action::Type::CLEAR_ALL: {
+                sendMessage(NULL, 0, MSG_TYPE_CLEAR_ALL);
+            }
+
             default:
                 break;
         }
@@ -206,13 +223,47 @@ public:
             action_queue.pop(&action);
             
             switch (action.type) {
+                case Action::TRACK_BEAT_TOGGLE: {
+                    track_id_t track_id = action.data.toggle_beat_track_id;
+                    unsigned char beat_idx = action.data.toggled_beat_id;
+
+                    TrackData &track = sequence_data.tracks[track_id];
+                    track.triggers[beat_idx] = !track.triggers[beat_idx];
+                    track.n_active_triggers += track.triggers[beat_idx] ? 1 : -1;
+
+                    break;
+                }
+
+                case Action::Type::TRACK_MUTE_TOGGLE: {
+                    track_id_t track_id = action.data.mute_unmute_track_id;
+                    TrackData &track = sequence_data.tracks[track_id];
+                    track.muted = !track.muted;
+
+                    break;
+                }
+
                 case Action::Type::PAUSE_TOGGLE: {
                     paused = !paused;
+
+                    break;
+                }
+
+                case Action::Type::BPM_SELECT: {
+                    bpm_t new_bpm = action.data.new_bpm;
+                    sequence_data.bpm = new_bpm;
+
                     break;
                 }
                 
                 case Action::Type::TRACK_SELECT: {
                     curr_track_id = action.data.new_curr_track_id;
+                    break;
+                }
+
+                case Action::Type::CLEAR_ALL: {
+                    sequence_data.reset();
+                    curr_track_id = 0;
+
                     break;
                 }
 

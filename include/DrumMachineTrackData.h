@@ -36,6 +36,20 @@ struct SequenceData {
 
     SequenceData() : bpm(120) {}
 
+    void reset() {
+        bpm = 120;
+        for (unsigned char i = 0; i < N_TRACKS; i++) {
+            tracks[i].instrument_id = 0;
+            tracks[i].volume = 0.75f;
+            tracks[i].muted = false;
+            tracks[i].n_active_triggers = 0;
+
+            for (unsigned char j = 0; j < N_TRACK_SUBDIVISIONS; j++) {
+                tracks[i].triggers[j] = false;
+            }
+        }
+    }
+
     void prettyPrint() const {
         printf("BPM: %d\n", bpm);
 

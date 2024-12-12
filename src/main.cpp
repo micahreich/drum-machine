@@ -7,6 +7,7 @@
 #include <DrumMachineTrackData.h>
 #include <DrumMachineButtons.h>
 #include <DrumMachineState.h>
+#include <DrumMachineLEDs.h>
 #include <ShiftRegisterDebounce.h>
 #include <Messaging.h>
 
@@ -45,11 +46,20 @@ DrumMachineButtons buttons(shift_register_data);
 // Action queue
 DrumMachineState state;
 
+// LEDs
+#define LED_PIN_BEATS 13
+#define LED_PIN_TRACKS 12
+
+Adafruit_NeoPixel beat_strip(N_TRACK_SUBDIVISIONS, LED_PIN_BEATS, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel track_strip(N_TRACKS, LED_PIN_TRACKS, NEO_GRB + NEO_KHZ800);
+
+DrumMachineLEDs leds(beat_strip, track_strip);
+
 // Function prototypes
 void readShiftRegister(uint8_t *data);
 
 void setup() {
-    // // Set up the rotary encoder
+    // Set up the rotary encoder
     pinMode(ENC_CLK_PIN, INPUT);
     pinMode(ENC_DT_PIN, INPUT);
     pinMode(ENC_SW_PIN, INPUT_PULLUP);  // SW usually goes LOW when pressed, so use INPUT_PULLUP
@@ -58,6 +68,9 @@ void setup() {
     pinMode(SR_DATA_PIN, INPUT);
     pinMode(SR_CLOCK_PIN, OUTPUT);
     pinMode(SR_LATCH_PIN, OUTPUT);
+
+    // Set up LEDs
+    leds.init();
 
     // Set up the instrument menu button handler for single/long clicks
     menu_button.setDebounceTime(25);
@@ -82,16 +95,22 @@ void setup() {
     });
 
     menu_button.setLongClickDetectedHandler([](Button2& btn) {
-        selection_menu.switchPage(DrumMachineSelectionMenu::CATEGORY_SELECTION);
+        if (selection_menu.currPage == DrumMachineSelectionMenu::Page::CATEGORY_SELECTION) {
+            state.pushAction(Action::create_ClearAll());
+        } else {
+            selection_menu.switchPage(DrumMachineSelectionMenu::CATEGORY_SELECTION);
+        }
     });
 
     menu_button.setDoubleClickHandler([](Button2& btn) {
         selection_menu.switchPage(DrumMachineSelectionMenu::BPM_SELECTION);
     });
 
+    selection_menu.init();
+
     // Set up the beat/track button handlers
     buttons.setBeatButtonRiseHandler([](int beat_idx) {
-        // if (selection_menu.getSelectedInstrumentID() == -1) return;
+        if (selection_menu.getSelectedInstrumentID() == -1) return;
 
         state.pushAction(Action::create_TrackBeatToggle(state.curr_track_id, beat_idx));
     });
@@ -114,7 +133,14 @@ void setup() {
         state.pushAction(Action::create_InstrumentSample(selection_menu.getSelectedInstrumentID()));
     });
 
-    // selection_menu.init();
+    // Set up the NeoPixel strips
+    beat_strip.begin(); // Prepares the data pin NeoPixels are connected to
+    beat_strip.setBrightness(128); // max brightness is 255
+    beat_strip.show();  // Initialize all the pixels to 'off' since nothing has been programmed yet
+
+    track_strip.begin(); // Prepares the data pin NeoPixels are connected to
+    track_strip.setBrightness(128); // max brightness is 255
+    track_strip.show();  // Initialize all the pixels to 'off' since nothing has been programmed yet
 
     Serial.begin(9600);
 }
@@ -126,7 +152,7 @@ void loop() {
     // Read encoder ticks
     long newInstrumentMenuEncoderTicks = menu_encoder.read() / 4;  // Divide by 4 for detents
     if (newInstrumentMenuEncoderTicks != menu_encoder_ticks) {
-        long delta = -(newInstrumentMenuEncoderTicks - menu_encoder_ticks);
+        long delta = (newInstrumentMenuEncoderTicks - menu_encoder_ticks);
         menu_encoder_ticks = newInstrumentMenuEncoderTicks;
 
         selection_menu.loop(delta);
@@ -134,11 +160,13 @@ void loop() {
 
     // Read shift register data
     readShiftRegister(shift_register_data);
-
     buttons.loop();
 
     // Loop the state
     state.loop();
+
+    // Loop the LEDs
+    leds.loop(state.sequence_data, state.curr_track_id);
 }
 
 void readShiftRegister(uint8_t *data) {
