@@ -1,7 +1,7 @@
 # Compiler and flags
 CXX = g++
 CXXFLAGS = -std=c++17 -I/opt/homebrew/include -Iinclude
-LDFLAGS = -L/opt/homebrew/lib -L/usr/local/lib -lsfml-audio -lserial -Wl,-rpath,/usr/local/lib
+LDFLAGS = -L/opt/homebrew/lib -L/usr/local/lib -lsfml-audio -lsfml-system -lserial -Wl,-rpath,/usr/local/lib
 
 # Source and output files
 SRC = src/audio_mix.cpp

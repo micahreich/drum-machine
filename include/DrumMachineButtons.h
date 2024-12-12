@@ -12,9 +12,9 @@
 
 #define BUTTON_DEBOUNCE_MS 25
 
-typedef void (*BeatButtonRiseCallbackFunction)(int);  // Beat index
-typedef void (*TrackButtonRiseCallbackFunction)(int); // Track index
-typedef void (*DrumMachineButtonEventCallbackFunction)();
+typedef void (*BeatButtonRiseCallback)(int);  // Beat index
+typedef void (*TrackButtonRiseCallback)(int); // Track index
+typedef void (*DrumMachineButtonEventCallback)();
 
 class DrumMachineButtons {
 public:
@@ -101,23 +101,23 @@ public:
         }
     }
 
-    void setBeatButtonRiseHandler(BeatButtonRiseCallbackFunction callback) {
+    void setBeatButtonRiseHandler(BeatButtonRiseCallback callback) {
         beat_button_rise_callback = callback;
     }
 
-    void setTrackButtonRiseHandler(TrackButtonRiseCallbackFunction callback) {
+    void setTrackButtonRiseHandler(TrackButtonRiseCallback callback) {
         track_button_rise_callback = callback;
     }
 
-    void setPausePlayButtonRiseHandler(DrumMachineButtonEventCallbackFunction callback) {
+    void setPausePlayButtonRiseHandler(DrumMachineButtonEventCallback callback) {
         pause_play_button_rise_callback = callback;
     }
 
-    void setMuteUnmuteButtonRiseHandler(DrumMachineButtonEventCallbackFunction callback) {
+    void setMuteUnmuteButtonRiseHandler(DrumMachineButtonEventCallback callback) {
         mute_unmute_button_rise_callback = callback;
     }
 
-    void setSampleButtonRiseHandler(DrumMachineButtonEventCallbackFunction callback) {
+    void setSampleButtonRiseHandler(DrumMachineButtonEventCallback callback) {
         sample_button_rise_callback = callback;
     }
 private:
@@ -131,11 +131,11 @@ private:
     ShiftRegisterBounce sample_button = ShiftRegisterBounce(shift_register_data, N_TRACK_SUBDIVISIONS + 2);
 
     // Callback functions
-    BeatButtonRiseCallbackFunction beat_button_rise_callback = NULL;
-    TrackButtonRiseCallbackFunction track_button_rise_callback = NULL;
-    DrumMachineButtonEventCallbackFunction pause_play_button_rise_callback = NULL;
-    DrumMachineButtonEventCallbackFunction mute_unmute_button_rise_callback = NULL;
-    DrumMachineButtonEventCallbackFunction sample_button_rise_callback = NULL;
+    BeatButtonRiseCallback beat_button_rise_callback = NULL;
+    TrackButtonRiseCallback track_button_rise_callback = NULL;
+    DrumMachineButtonEventCallback pause_play_button_rise_callback = NULL;
+    DrumMachineButtonEventCallback mute_unmute_button_rise_callback = NULL;
+    DrumMachineButtonEventCallback sample_button_rise_callback = NULL;
 };
 
 #endif // DRUM_MACHINE_BUTTONS_H

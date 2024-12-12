@@ -8,29 +8,24 @@ enum MessageType {
     MSG_TYPE_PAUSE_PLAY = 2,
     MSG_TYPE_SAMPLE = 3,
     MSG_TYPE_MUTE_TRACK = 4,
-    MSG_TYPE_BPM = 5,
+    MSG_TYPE_BPM_SELECT = 5,
+    MSG_TYPE_CHANGE_TRACK_INSTRUMENT_ID = 6,
 };
 
 #ifdef ARDUINO
 
 #include <Arduino.h>
 
-void sendMessage(const unsigned char *msg, size_t payload_size, const MessageType &msg_type) {
+void sendMessage(const unsigned char *msg, unsigned char payload_size, const MessageType &msg_type) {
     Serial.write(static_cast<unsigned char>(MSG_START_BYTE));
     Serial.write(static_cast<unsigned char>(msg_type));
     Serial.write(payload_size);
+
+    if (msg == NULL) {
+        return;
+    }
+
     Serial.write(msg, payload_size);
-}
-
-void sendSequenceData(const SequenceData &data) {
-    const size_t num_bytes = data.numBytes();
-
-    unsigned char *buffer = new unsigned char[num_bytes];
-
-    data.serialize(buffer, num_bytes);
-    sendMessage(buffer, num_bytes, MSG_TYPE_SEQUENCE_DATA);
-
-    delete[] buffer;
 }
 
 void sendPausePlay(const bool pause) {
@@ -47,7 +42,12 @@ void sendMuteUnmuteTrack(const unsigned char track_id) {
 }
 
 void sendBPM(const unsigned char bpm) {
-    sendMessage(&bpm, 1, MSG_TYPE_BPM);
+    sendMessage(&bpm, 1, MSG_TYPE_BPM_SELECT);
+}
+
+void sendChangeTrackInstrumentID(const unsigned char track_id, const unsigned char instrument_id) {
+    unsigned char msg[2] = {track_id, instrument_id};
+    sendMessage(msg, 2, MSG_TYPE_CHANGE_TRACK_INSTRUMENT_ID);
 }
 
 #endif

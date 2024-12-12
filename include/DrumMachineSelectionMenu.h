@@ -12,7 +12,7 @@
 const byte SELECTOR_ICON = byte(0x7E);
 const byte SELECTED_ICON = byte(33);
 
-const int MAX_BPM = 220;
+const int MAX_BPM = 250;
 const int MIN_BPM = 30;
 
 class DrumMachineSelectionMenu {
