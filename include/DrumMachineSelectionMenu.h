@@ -54,15 +54,26 @@ public:
         return currBPM;
     }
 
-    void selectInstrument() {
-        if (currPage != INSTRUMENT_SELECTION) return;
+    int getCurrSelectedInstrumentID() {
+        if (currPage != INSTRUMENT_SELECTION) return -1;
 
         int instrumentIdsStartingIdx = INSTRUMENT_CAT_INFO_LUT[activeInstrumentCategoryId][0];
         int numInstrumentsInCategory = INSTRUMENT_CAT_INFO_LUT[activeInstrumentCategoryId][1];
 
         if (numInstrumentsInCategory > 0) {
-            selectedInstrumentId = instrumentIdsStartingIdx + relativeSelectionIdx;
-            selectedInstrumentCategoryId = activeInstrumentCategoryId;
+            return instrumentIdsStartingIdx + relativeSelectionIdx;
+        }
+
+        return -1;
+    }
+
+    void selectInstrument() {
+        int id = getCurrSelectedInstrumentID();
+        int categoryId = activeInstrumentCategoryId;
+
+        if (id >= 0 && categoryId >= 0) {
+            selectedInstrumentId = id;
+            selectedInstrumentCategoryId = categoryId;
 
             clearLCDCol(0);
             renderSelectedInstrumentIndicator(selectedInstrumentId, selectedInstrumentCategoryId);
@@ -137,18 +148,17 @@ public:
 
         int newGroupNum = relativeSelectionIdx / lcdNumRows;
         if (newGroupNum != currGroupNum) {
+            currGroupNum = newGroupNum;
+            lcd.clear();
+
             switch (currPage) {
                 case INSTRUMENT_SELECTION:
-                    currGroupNum = newGroupNum;
-                    lcd.clear();
                     renderInstrumentList(activeInstrumentCategoryId, currGroupNum);
                     break;
                 case CATEGORY_SELECTION:
-                    currGroupNum = newGroupNum;
-                    lcd.clear();
                     renderCategoryList(currGroupNum);
                     break;
-                case BPM_SELECTION:
+                default:
                     break;
             }
         }
@@ -226,17 +236,17 @@ private:
     }
 
     void renderBPMSelection(bool writeOnlyNewBPM = false) {
-        String prefix = "BPM: ";
+        const int prefixLength = 5;
 
         if (writeOnlyNewBPM) {
-            lcd.setCursor(prefix.length() + 1, 1);
-            lcd.print(nSpaces(lcdNumCols - prefix.length()));
+            lcd.setCursor(prefixLength + 1, 1);
+            lcd.print(nSpaces(lcdNumCols - prefixLength));
 
-            lcd.setCursor(prefix.length() + 1, 1);
+            lcd.setCursor(prefixLength + 1, 1);
             lcd.print(String(currBPM));
         } else {
             lcd.setCursor(1, 1);
-            lcd.print(String(prefix) + String(currBPM));
+            lcd.print("BPM: " + String(currBPM));
         }
 
         renderBrand();

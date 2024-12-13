@@ -1,7 +1,9 @@
 import os
 
-parent_dir = f"{__file__[:__file__.rfind("/")]}/../"
+parent_dir = f"{__file__[:__file__.rfind('/')]}/../"
 instruments_dir = os.path.join(parent_dir, 'instruments')
+
+print(f"Generating instrument lookup table from {instruments_dir}")
 
 def generate_audio_lut():
     absolute_paths = []
@@ -45,7 +47,7 @@ def generate_audio_lut():
     
     for instrument_name in sounds_by_category:
         for file_name in sounds_by_category[instrument_name]:
-            lines.append(f"  \"{file_name.removesuffix(".wav")}\",\n")
+            lines.append(f"  \"{file_name.removesuffix('.wav')}\",\n")
     lines.append("}; // lut[instrument_id] = instrument name\n\n")
     
     lines.append(f"const int INSTRUMENT_CAT_INFO_LUT[{len(sounds_by_category)}][2] = {{\n")

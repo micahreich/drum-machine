@@ -11,10 +11,10 @@ public:
     DrumMachineLEDs(Adafruit_NeoPixel strip_beat, Adafruit_NeoPixel strip_track) : strip_beat(strip_beat), strip_track(strip_track) {
         ACTIVE_BEAT_IDX_COLOR = strip_beat.Color(0, 128, 255);
 
-        INACTIVE_BEAT_IDX_COLORS[0] = strip_beat.Color(255, 165, 0);
-        INACTIVE_BEAT_IDX_COLORS[1] = strip_beat.Color(255, 100, 0);
-        INACTIVE_BEAT_IDX_COLORS[2] = strip_beat.Color(255, 50, 0);
-        INACTIVE_BEAT_IDX_COLORS[3] = strip_beat.Color(255, 0, 0);
+        INACTIVE_BEAT_IDX_COLORS[0] = strip_beat.Color(255, 0, 0);
+        INACTIVE_BEAT_IDX_COLORS[1] = strip_beat.Color(255, 165, 0);
+        INACTIVE_BEAT_IDX_COLORS[2] = strip_beat.Color(255, 100, 0);
+        INACTIVE_BEAT_IDX_COLORS[3] = strip_beat.Color(255, 50, 0);
 
         ACTIVE_TRACK_IDX_COLOR = strip_track.Color(0, 128, 255);
     }

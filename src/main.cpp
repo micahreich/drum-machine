@@ -128,9 +128,13 @@ void setup() {
     });
 
     buttons.setSampleButtonRiseHandler([]() {
-        // if (selection_menu.getSelectedInstrumentID() == -1) return;
-
-        state.pushAction(Action::create_InstrumentSample(selection_menu.getSelectedInstrumentID()));
+        if (selection_menu.getSelectedInstrumentID() == -1) return;
+        
+        int selectedInstrumentID = selection_menu.getCurrSelectedInstrumentID();
+        
+        if (selectedInstrumentID >= 0) {
+            state.pushAction(Action::create_InstrumentSample(selectedInstrumentID));
+        }
     });
 
     // Set up the NeoPixel strips
