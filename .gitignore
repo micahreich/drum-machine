@@ -6,3 +6,36 @@
 **/.vscode
 **/*.wav
 **/*.DS_Store
+
+# Common compiled object files
+*.o
+*.so
+*.dll
+*.dylib
+
+# Compiled executables
+*.exe
+*.out
+*.app
+
+# Compiled Java class files
+*.class
+
+# Compiled Python files
+*.pyc
+*.pyo
+__pycache__/
+
+# Compiled Go binaries
+*.a
+
+# Compiled Rust files
+*.rlib
+
+# Compiled Haskell files
+*.hi
+*.o
+
+# Compiled C# files
+*.exe
+*.dll

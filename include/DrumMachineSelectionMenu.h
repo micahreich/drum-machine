@@ -135,33 +135,60 @@ public:
             renderBPMSelection(true);
             
             return;
-        }
+        } else {
+            int newRelativeSelectionIdx = relativeSelectionIdx + tickDelta;
+            newRelativeSelectionIdx = max(0, min(newRelativeSelectionIdx, maxRelativeSelectionIdx));
 
-        int newRelativeSelectionIdx = relativeSelectionIdx + tickDelta;
-        newRelativeSelectionIdx = max(0, min(newRelativeSelectionIdx, maxRelativeSelectionIdx));
+            if (newRelativeSelectionIdx != relativeSelectionIdx) {
+                relativeSelectionIdx = newRelativeSelectionIdx;
+            }
 
-        if (newRelativeSelectionIdx != relativeSelectionIdx) {
-            relativeSelectionIdx = newRelativeSelectionIdx;
+            int newGroupNum = relativeSelectionIdx / lcdNumRows;
+            if (newGroupNum != currGroupNum) {
+                currGroupNum = newGroupNum;
+                lcd.clear();
+
+                switch (currPage) {
+                    case INSTRUMENT_SELECTION:
+                        renderInstrumentList(activeInstrumentCategoryId, currGroupNum);
+                        break;
+                    case CATEGORY_SELECTION:
+                        renderCategoryList(currGroupNum);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
             renderSelectionIndicator(relativeSelectionIdx);
             renderSelectedInstrumentIndicator(selectedInstrumentId, selectedInstrumentCategoryId);
         }
 
-        int newGroupNum = relativeSelectionIdx / lcdNumRows;
-        if (newGroupNum != currGroupNum) {
-            currGroupNum = newGroupNum;
-            lcd.clear();
+        // int newRelativeSelectionIdx = relativeSelectionIdx + tickDelta;
+        // newRelativeSelectionIdx = max(0, min(newRelativeSelectionIdx, maxRelativeSelectionIdx));
 
-            switch (currPage) {
-                case INSTRUMENT_SELECTION:
-                    renderInstrumentList(activeInstrumentCategoryId, currGroupNum);
-                    break;
-                case CATEGORY_SELECTION:
-                    renderCategoryList(currGroupNum);
-                    break;
-                default:
-                    break;
-            }
-        }
+        // if (newRelativeSelectionIdx != relativeSelectionIdx) {
+        //     relativeSelectionIdx = newRelativeSelectionIdx;
+        //     renderSelectionIndicator(relativeSelectionIdx);
+        //     renderSelectedInstrumentIndicator(selectedInstrumentId, selectedInstrumentCategoryId);
+        // }
+
+        // int newGroupNum = relativeSelectionIdx / lcdNumRows;
+        // if (newGroupNum != currGroupNum) {
+        //     currGroupNum = newGroupNum;
+        //     lcd.clear();
+
+        //     switch (currPage) {
+        //         case INSTRUMENT_SELECTION:
+        //             renderInstrumentList(activeInstrumentCategoryId, currGroupNum);
+        //             break;
+        //         case CATEGORY_SELECTION:
+        //             renderCategoryList(currGroupNum);
+        //             break;
+        //         default:
+        //             break;
+        //     }
+        // }
     }
 
 private:

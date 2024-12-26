@@ -127,9 +127,7 @@ void setup() {
         state.pushAction(Action::create_TrackSelect(track_idx));
     });
 
-    buttons.setSampleButtonRiseHandler([]() {
-        if (selection_menu.getSelectedInstrumentID() == -1) return;
-        
+    buttons.setSampleButtonRiseHandler([]() {        
         int selectedInstrumentID = selection_menu.getCurrSelectedInstrumentID();
         
         if (selectedInstrumentID >= 0) {
