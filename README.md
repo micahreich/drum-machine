@@ -1,4 +1,4 @@
-# Arduino Drum Machine
+# Arduino Drum Machine (DM-095)
 
 An Arduino drum machine inspired by models like the Roland TR-808 and Teenage Engineering KO2.
 
